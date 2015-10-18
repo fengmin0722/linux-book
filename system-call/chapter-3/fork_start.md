@@ -166,6 +166,7 @@ int main(){
 ####从变量情况看fork()
 
 看这个例子：
+
 ```
 #include<stdio.h>
 #include<unistd.h>
