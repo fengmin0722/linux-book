@@ -217,8 +217,9 @@ int main(){
     我们思考是思考不出来的，不如动手尝试下：
     
     我们必须让子进程先运行，这里我使用了sleep()函数，这个函数很简单，就是让进程执行到先停下，等待我们设置的时间。
-    ```
-    #include<stdio.h>
+    
+```
+#include<stdio.h>
 #include<unistd.h>
 #include<stdlib.h>
 
