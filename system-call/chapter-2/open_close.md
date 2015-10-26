@@ -114,14 +114,15 @@ fd = open(pathname , O_WRONLY | O_CREAT | O_TRUNC , mode);
 ```
 不过现在使用open函数很方便，所以creat函数使用已经不太常见。
 
-##系统调用——read
-
-marking...
-
-##系统调用——write
-
-marking...
 
 ##系统调用——close
 
-marking...
+当我们使用完此文件之后，我们要将文件关闭。
+
+```
+#include<unistd.h>
+
+int close(int fd);
+成功返回0 ，失败返回-1
+```
+文件描述符属于有限的系统资源。我们可以查看/proc/sys/fs/file-max文件，看系统文件描述符数是多少。调用失败可能有这几个原因：企图关闭一个没有打开的文件描述符，或者对同一文件描述符关闭多次等。
