@@ -2,15 +2,31 @@
 ##前言
     在前边我们已经了解了，进程的基本概念，C语言的内存布局，简单的进程在内存空间的布局，接下来我们就要正式进入进程的学习了。
 ###学习目标
-1.进程的数据结构--进程描述符
+1.进程的几种状态
 
-2.几个简单的获取进程ID 函数
+2.进程的数据结构--进程描述符
+             --扩展 ，通过内核模块看进程。
+3.几个简单的获取进程ID 函数
 
-3.创建进程函数--fork() ,vfork()函数 
+4.创建进程函数--fork() ,vfork()函数 
 
-4.程序设计之--进程启动程序
+5.程序设计之--进程启动程序
 
-5.练习题--别怕，熟能生巧
+6.练习题--熟能生巧
+
+###进程的几种状态
+TASK_RUNNING（ 运行 ）  ---进程是可执行的；它或者正在执行，或者在运行队列中等待执行，这是进程在用户空间唯一可能的状态；这种状态也可以应用到内核空间正在执行的进程。
+
+TASK_INTERRUPTIBLE（ 可中断）进程正在睡眠，等待某些唤醒它的条件到来。
+
+TASK_UNINTERRUPTIBLE(不可中断）对信号不做响应，这个状态通常在进程必须在等待时不受干扰时使用，使用的较少。
+
+_TASK_TRACED-被其他进程跟踪的进程
+
+_TASK_STOPPED( 停止） ——进程停止执行，；进程没有投入运行，也不能投入运行。
+ 
+
+
 
 ###进程的数据结构--进程描述符
    我们知道一台正在运行中的电脑可以执行很多任务，比如你在打LOL，听音乐，看新闻，或者和某个人聊着天，这些动作都是不同的且独立运行着的进程，这么多的进程，电脑或者说操作系统是如何管理它的呢？ 其实大体上的管理方式是使用一种我们都学过的数据结构--循环链表。
@@ -38,12 +54,89 @@ struct task_struct{
 ```
 
 这是我从内核源码中截取的一部分，主要是一些可能常见的后边能接触到的属性，更重要的是理解这个结构是什么，它做了什么。
-以后介绍抽象的东西我都会给一个小结。
 
 小结：
 
     进程描述符包含了内核管理一个进程所需要的所有信息，进程描述符中包含的数据结构能完整地描述一个正在执行的程序：
     它打开的文件，进程的地址空间，挂起的信号，进程的状态，以及其他一些信息，抓住了进程描述符，你提住了进程的纲领。
+####扩展--通过内核模块看进程信息
+内核模块：Linux 是宏内核，整个系统都运行在一个单独的保护空间中，但是他允许我们动态的增加或者删除一些函数，但是这些函数的编写需要一些特殊的规范与技巧，同过加载这些”模块“我们就可以得到一些我们需要的信息。这里举个例字，我们通过获得一个进程的描述符，利用他双向循环链表的特点打印输出所有进程的信息。
+
+如果你想要尝试这个例子，请先安装内核代码开发树。没有一个版本安装方法不同，请自行根据自己的发行版本安装，或者参考本书kernrl 部分。
+
+```
+#include<linux/module.h>
+#include<linux/sched.h>
+#include<linux/sem.h>
+#include<linux/list.h>
+//这些是一些内核模块需要包含的头文件
+static int __init  traverse_init(void)
+{       //内核模块固定格式__init 
+      struct task_struct *pos;
+      struct list_head *current_head;
+      int count=0;
+      printk("Traversal module is working..\n");
+      current_head=&(current->tasks);
+      //使用次current 获取一个进程的结构体
+      list_for_each_entry(pos,current_head,tasks)
+      {
+             count++;
+             printk("[process %d]: %s\'s pid is %d\n",count,pos->comm,pos->pid);
+      }
+      printk(KERN_ALERT"The number of process is:%d\n",count);
+      // 内核模块只能使用printk打印到消息对列。所以使用printk()
+      return 0;
+}
+
+static void __exit traverse_exit(void)
+{
+  //内核模块卸载函数，内核模块使用完成后记得卸载。
+  printk("hello world exit\n");
+}
+
+module_init(traverse_init);
+module_exit(traverse_exit);
+
+内核模块需要使用Makefile 编译。
+
+
+
+obj-m := for_each.o
+
+CURRENT_PATH := ${shell pwd}
+
+CURRENT_KERNEL_PATH := ${shell uname -r}
+
+LINUX_KERNEL_PATH := /usr/src/kernels/$(CURRENT_KERNEL_PATH)
+
+all:
+
+	   make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules
+
+clean:
+
+	   rm *.o
+
+```
+编译效果如图：
+![for_each](images/for_make.png)
+
+
+表示编译成功
+我们这里需要使用两个命令。
+ismode 加载模块
+rmmod  卸载模块
+
+加载时记得切换超级用户权限
+
+执行insmod for_each.ko
+
+![for_each](images/demsg_process.png)
+
+这些是节选了一部分，可以看出按照我们的预期打印了所有的进程并且打印了其名称。
+
+
+
 
 ###几个简单的获取进程ID的函数
 ```
@@ -76,7 +169,9 @@ pid_t getegid(void);     //返回调用进程的有效组ID
     堆，栈空间。
 接下来我们将从ID的关系，代码段执行的情况，变量的关系几个方面来探究这个函数。
 #####从ID的关系看fork()
- 
+
+```
+```
 ```
 #include<stdio.h>
 #include<stdlib.h>
@@ -269,3 +364,124 @@ int main(){
 写时复制（copy_on_write):
 
 其实子进程在复制父进程资源的时候，并没有真正的复制父进程的所有东西。只有在真正需要写入的时后才会将父进程的变量切实的拷贝到子进程独立的地指空间中，这样我们才能修改，但是修改的已经不是父进程的变量了，而是一个独立的已经拷贝到子进程的一个独立的变量了。
+
+画一个图，这里有一个父进程，一个子进程。图中的子进程是由父进程创建的，他们其中的一个变量现阶段映射的是同一段内存地址，但是当这个子进程需要更改这个变量的时候，操作系统就会从内存中另行拷贝一个内存块，将这个变量复制到新开辟的内存空间中，自此，子进程的这个变量和父进程的同一个变量开始分离成两个独立的变量。
+
+
+###vfork( )
+    
+        这个函数和fork()函数一样都是用来创建子进程的，不同的是这里创建的子进程和父进程使用的是同样的地指空间，共享所有的变量，当子进程改变其中的变量的时候，
+        父进程也会被改变，但是现在这个函数已经不太被使用了，更多的使用方式是使用fork( ) + exec( ).
+        当父进程创建一个子进程后，立刻执行exec()函数来执行一个新的程序，这样直接可以创建一个拥有独立进程地指空间的进程。
+        下面附上一个vfork() 的例子。
+        
+```
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+
+
+
+int globvar = 6;
+
+int main(){
+
+    int var;
+    pid_t pid;
+    var = 88;
+    printf("before vfork \n ");
+    if((pid = vfork()) < 0){
+        printf("vfork error\n");
+    }else if(pid == 0){
+        globvar++;
+        var++;
+        _exit(0);
+    }
+    
+    printf("pid = %d,glob = %d,var = %d\n",getpid(),globvar,var);
+    
+    
+    
+}
+
+
+```
+
+
+执行结果:
+
+![vfork](images/vfork_result.png)
+
+子进程对变量加一，结果改变了父进程中的变量，因为子进程在父进程的地址空间中运行，所有的东西都是共享的。
+
+
+###练习题
+####test,看看这些输出了什么？
+```
+int main(){
+   int i;
+   for(i = 0;i < 2;i++)
+        fork();
+   printf("hello\n");
+   exit(0);
+}
+
+```
+-------------------------------------------------------------------
+```
+int main(){
+    int x = 3;
+    if(fork() != 0)
+        printf("x = %d\n",++x);
+    printf("x = %d\n",--x);
+    exit(0);
+}
+
+```
+-------------------------------------------------------------------
+```
+void doit(){
+ if(fork() == 0){
+    fork();
+    printf("hello\n");
+    exit(0);
+  }
+  return ;
+}
+
+int main(){
+    doit();
+    printf("hello\n");
+    exit(0);
+}
+
+```
+--------------------------------------------------------------------
+```
+void foo(int n)
+{
+    int i;
+    for(i = 0;i < n;i++)
+        fork();
+    printf("hello\n");
+    exit(0);
+}
+```
+--------------------------------------------------------------------
+
+```
+int main()
+{
+   if(fork() == 0){
+        printf("a");
+        exit(0);
+   }else{
+        printf("b");
+        waitpid(-1,NULL,0);
+   }
+   printf("c");
+   exit(0);
+}
+```
+
+   
