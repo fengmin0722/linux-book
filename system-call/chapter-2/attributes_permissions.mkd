@@ -115,3 +115,164 @@ utimes系统调用：
 
 新的文件访问时间在tv[0]中指定，新的文件修改时间在tv[1]中指定。
 
+
+上面我们可以通过lstat系统调用来获取文件的详细信息。那我们可不可以更改这些属性呢？或者说，如果我们自己开发软件之后，也需要对文件最后访问时间进行修改，那这个需求应该怎么实现呢？
+
+##系统调用——chmod
+
+在终端下，我们可以使用一些命令来改我们文件的属性，就好比chmod（更改文件权限）。同样，我们也可以在程序中对文件属性进行修改。
+```
+#include<sys/stat.h>
+
+int chmod(const char *path, mode_t mode);
+
+成功返回0，失败返回-1并设置errno位。如果返回-1，则不更改文件属性。
+
+```
+
+第一个参数是文件的路径，mode参数用来更改参数path所指定文件的权限。
+
+常见的参数：
+
+权限宏 | 权限码 | 含义
+----|------|----
+S_ISUID | 04000  | (set user-id on execution)位
+S_ISGID | 02000  | (set group-id on execution)位
+S_ISVTX | 01000  | 文件的sticky 位
+S_IRUSR (S_IREAD)  | 00400 | 文件所有者具可读取权限
+S_IWUSR (S_IWRITE) | 00200 | 文件所有者具可写入权限
+S_IXUSR (S_IEXEC)  | 00100 | 文件所有者具可执行权限
+S_IRGRP | 00040 | 用户组具可读取权限
+S_IWGRP | 00020 | 用户组具可写入权限
+S_IXGRP | 00010 | 用户组具可执行权限
+S_IROTH | 00004 | 其他用户具可读取权限 
+S_IWOTH | 00002 | 其他用户具可写入权限
+S_IXOTH | 00001 | 其他用户具可执行权限
+  
+
+errno会遇到的错误代码：
+
+1. EPERM 进程的有效用户识别码与欲修改权限的文件拥有者不同, 而且也不具root 权限.
+2. EACCESS 参数path 所指定的文件无法存取.
+3. EROFS 欲写入权限的文件存在于只读文件系统内.
+4. EFAULT 参数path 指针超出可存取内存空间.
+5. EINVAL 参数mode 不正确
+6. ENAMETOOLONG 参数path 太长
+7. ENOENT 指定的文件不存在
+8. ENOTDIR 参数path 路径并非一目录
+9. ENOMEM 核心内存不足
+10. ELOOP 参数path 有过多符号连接问题.
+11. EIO I/O 存取错误
+
+
+我们用一个例子来研究一下它的用法。
+
+```
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<errno.h>
+#include<unistd.h>
+
+int main(int argc , char * argv[])  {
+    /*我们可以在当前目录下使用"touch 1.text"命令创建一个文件
+     *使用"ls -l 1.text"命令查看文件的属性
+     *我们首先在程序中打印出文件的属性
+     *我们使用chmod系统调用来更改文件的属性
+     *打印更改之后的文件属性
+     */
+    struct stat buffer;
+    if(stat("1.text", &buffer) == -1) {
+        fprintf(stderr, "stat:");
+        exit(1);
+    }
+    printf("Before change, file mode is %o\n",buffer.st_mode);
+
+    //更改文件属性
+    if(chmod("1.text", S_IRUSR | S_IWUSR | S_IXUSR) == -1) {
+        fprintf(stderr, "chmod:");
+        exit(0);
+    }
+    if(stat("1.text", &buffer) == -1) {
+        fprintf(stderr, "stat:");
+        exit(1);
+    }
+    printf("After change, file mode is %o\n",buffer.st_mode);
+    return EXIT_SUCCESS;
+}
+
+```
+我们刚touch创建的文件的权限是0666，但我们使用chmod系统调用之后，文件的权限变成了0700。
+
+
+##系统调用——chown/fchown/lchown
+
+这三个系统调用可以更改文件的所有者或组。
+
+```
+#include<sys/types.h>
+#include<unistd.h>
+
+int chown(const char *path, uid_t owner, gid_t group);
+int fchown(int fd, uid_t owner, gid_t group);
+int lchown(const char *path, uid_t owner, gid_t group);
+
+成功返回0，失败返回-1，并设置error的值。
+```
+这些系统调用更改一个文件的所有者和组（分别是第二跟第三个参数），区别在于如何指定文件。chown改变由path制定的文件，如果path是符号链接，则指向链接到的文件。fchmod改变由已打开的文件描述符fd所引用的文件。lchmod类似chmod，区别在于第一个参数如果是符号链接，则更改该链接的组和属性。
+
+Talk is cheap, shouw me the code.
+
+```
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+
+int main(int argc , char * argv[])  {
+    /*我们可以在当前目录下使用"touch 1.text"命令创建一个文件
+     *使用"ls -l 1.text"命令查看文件所属的用户和组
+     *我们首先在程序中打印出文件所属的用户和组
+     *我们使用chmod系统调用来更改文件所属的用户和组
+     *打印更改之后的文件所属的用户和组
+     */
+
+    struct stat st;
+    if(stat("1.text", &st) == -1) {
+        fprintf(stderr, "stat:");
+        exit(0);
+    }
+    printf("Before change, file owner is %d\t file group is %d\n",st.st_uid, st.st_gid);
+    
+    //更改文件所属用户和所属用户组
+    if(chown("1.text", 0, 0) == -1) {
+        fprintf(stderr, "chown :");
+        exit(0);
+    }
+    if(stat("1.text", &st) == -1) {
+        fprintf(stderr, "stat:");
+        exit(0);
+    }
+    printf("After change, file owner is %d\t file group is %d\n",st.st_uid, st.st_gid);
+    return EXIT_SUCCESS;
+}
+
+```
+因为我要将文件改为root用户和root组，因此运行时候需要加sudo权限.或者使用root用户执行。此时，我们可以在终端下ll查看“1.text”文件的所属者和所属的用户组变成了root。
+
+
+##系统调用——umask
+
+umask系统调用会改变文件的掩码。其实我们使用open函数创建文件时候，参数mode并不是 建立文件的权限，而是（mode&～umask）的权限值。例如： （0666 & ~022 = 0644; i.e., rw-r--r--）所以有时候我们可是使用umask屏蔽文件的某权限。
+
+```
+#include <sys/types.h>
+#include <sys/stat.h>
+
+mode_t umask(mode_t mask);
+
+此函数调用总是会成功，返回原先的值。
+```
+mask
