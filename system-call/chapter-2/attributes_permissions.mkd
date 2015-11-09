@@ -275,4 +275,94 @@ mode_t umask(mode_t mask);
 
 此函数调用总是会成功，返回原先的值。
 ```
-mask
+参数mask是几个常用宏。
+
+mask的使用例子：
+
+```
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<limits.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<errno.h>
+#include<string.h>
+#include<signal.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#include<unistd.h>
+
+#define RWRWRW (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
+
+int main(int argc , char * argv[])  {
+    //使用umask将所有的权限撤销
+    umask(0);
+    if(creat("foo", RWRWRW) < 0) {
+        fprintf(stderr, "create error for foo");
+        exit(0);
+    }
+    //使用umask只撤销S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH权限
+    umask(S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if(creat("bar", RWRWRW) < 0) {
+        fprintf(stderr, "create error for bar");
+        exit(0);
+    }
+
+    return EXIT_SUCCESS;
+}
+
+```
+
+我们首先将文件的掩码设置为‘0’，这样新创建的文件没有任何权限。下面我们屏蔽S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH这些权限，然后创建文件。程序执行结束，使用“ls -l”命令查看刚才创建的文件权限。
+
+##系统调用——rename
+
+在程序中，我们可以用系统调用rename来更改文件的名称、目录名称或者路径。
+
+```
+#include<stdio.h>
+
+int rename(const char *old, const char *new);
+
+成功返回0，失败返回-1，并设置errno位。
+```
+
+参数old表示原来的文件名称，new表示新的文件名称。
+举个例子：
+
+```
+#include<stdio.h>
+#include<stdlib.h>
+
+int main(int argc , char * argv[])  {
+    //我们用上一个实例创建的“foo”文件
+    if(rename("foo", "balabala") == -1) {
+        fprintf(stderr, "rename failed!");
+        exit(0);
+    }
+    return EXIT_SUCCESS;
+}
+```
+
+执行上述代码之后，我们使用“ls”命令，发现现在没有“foo”文件，而多了一个“balbala”文件。如果文件里面原先有信息的话，现在打开“balabala”文件，你会发现，信息是一样的。
+
+
+##系统调用——unlink/remove
+
+前面我们已经学习了文件的创建，打开、关闭，读写等操作。现在提出一个问题，如果我们想在程序中删除文件。我们应该怎么做呢？答案是使用unlink/remove系统调用。
+
+```
+#include<stdio.h>
+
+int remove(const char *pathname);
+
+#include<unistd.h>
+
+int unlink(const char *pathname);
+
+成功返回0，失败返回-1，并设置errno位。
+
+```
+这两个系统调用我们只用把文件的路径当作参数就好了。这两个系统调用确实可以删除，但是是有区别的。
+unlink 将文件的连接数减少一个，如果当前文件的连接数目为0，并且没有其他程序打开这个文件，则删除；而remove则将文件直接删除。
+
