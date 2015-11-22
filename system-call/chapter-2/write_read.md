@@ -388,3 +388,57 @@ struct flock {
 ```
 
 
+##系统调用——dup/dup2
+
+我们有时候需要使用不同的文件描述符来表示同一个文件，那么我们应该怎么做呢？我们可以使用dup/dup2来复制文件描述符。
+```
+#include<unistd.h>
+
+int dup(int oldfd);
+
+成功时返回一个新的文件描述符，失败返回-1，并设置errno位。
+```
+```
+#include<unistd.h>
+
+int dup2(int oldfd, int newfd);
+
+成功时返回newfd的值，失败返回-1，并设置errno位。
+
+```
+举个例子：
+```
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<errno.h>
+#include<unistd.h>
+#include<fcntl.h>
+#include<string.h>
+
+int main(int argc , char * argv[])  {
+    char * buf = "hello world!";
+    int fd = open("1.test" , O_CREAT | O_RDWR , 0766 );
+    printf("Create a new file , FD = %d\n", fd);
+    write(fd, (void *)buf, strlen(buf));
+    close(fd);
+
+    fd = open("1.test", O_APPEND | O_RDWR ,0766);
+    int newfd = dup(fd);
+    printf("After dup function. return value = %d\n", newfd);
+    write(newfd, (void *)buf, strlen(buf));
+    close(newfd);
+
+    fd = open("1.test", O_APPEND | O_RDWR ,0766);
+    int thirdfd = dup2(fd, 1000);
+    printf("After dup2 function.The new FD = %d\n", thirdfd);
+    write(1000, (void *)buf, strlen(buf));
+    close(1000);
+    return EXIT_SUCCESS;
+}
+
+
+```
+
+我们可以先创建一个名为"1.test"的文件，向里面写入数据，然后我们用dup系统调用获得一个新的文件描述符并写入数据，最后我们调用dup2系统调用向里面写入数据。
