@@ -114,10 +114,13 @@ int main(int argc, char *argv[])
 读者可以自己尝试用 `readv` 来实现服务端，`readv` 是将读入的数据写到多个缓冲区中，它总是写满一块才开始写下一块。
 
 客户端:
+
 **sendv 12 byte**
+
 **recv message: hello world**
 
 服务端:
+
 **hello world**
 
 这时，你可能会问，`writev` 和 `sendv` 与调用两次 `write` 或 `send` 有什么区别，`writev` 和 `sendv` 只需要一次就可以在多个缓冲区之间传送数据，避免了多次系统调用和缓冲区的拷贝。 
@@ -380,6 +383,8 @@ ssize_t splice(int fd_in, loff_t *off_in, int fd_out, loff_t *off_out, size_t le
 `flag` 表示控制数据如何移动。
 
 `flag`：
+
+
 | 标识值 | 表示含义 |
 | :-: | :-: |
 |SPLICE_F_MOVE |提示内核如果可以以页为单位移动数据 |
@@ -504,6 +509,7 @@ int fcntl(int fd, int cmd, ... /* arg */ );
 `fcntl` 函数提供对文件描述符各种各样的操作，操作不同返回值不同。出错返回 `-1` 并且设置 `errno` 错误码。
 
 这里列举一些常用的。
+
 |操作|含义|返回值|
 |:-|:-|:-|
 |F_DUPFD | 创建一个新的文件描述符 | 新创建的文件描述符号 | 
