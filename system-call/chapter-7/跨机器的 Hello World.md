@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 }
 ```
 ##示例流程图
-![Alt text](./2015-11-01 12:51:37屏幕截图.png)
+![enter image description here](https://github.com/wangweihao/linux-book/blob/master/system-call/chapter-7/image/c-s.png)
 
 
 ##描述客户端：
