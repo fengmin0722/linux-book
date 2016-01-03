@@ -16,7 +16,7 @@
     * [极限训练——自己实现一个ls命令（李林翰，已完成）](chapter-2/write_ls_command_by_yourself.md)
 
 * [chapter-3 我不是一个人在战斗——进程（张明瑞，已完成）](chapter-3/README.md)
-    * [进程概述（张明瑞）](chapter-3/process_introduce.md)
+    * [进程概述（张明瑞，已完成）](chapter-3/process_introduce.md)
     * [进程的创建与结束（一）（张明瑞，已完成）](chapter-3/fork_start.md)
     * [进程的创建与结束（二）（张明瑞，已完成）](chapter-3/execve_new_process.md)
     * [进程的等待与同步（张明瑞，已完成）](chapter-3/wait_child_exit.md)
